@@ -282,6 +282,12 @@ do
     for pid in ${pids[@]}; do wait $pid; done
 done
 ```
+Expected output files
+```
+.bam
+.bai
+.bam.bai
+```
 
 ## QC Mapping
 Requires qualimap installed with conda \
