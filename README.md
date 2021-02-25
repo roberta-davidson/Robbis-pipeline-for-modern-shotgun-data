@@ -363,7 +363,11 @@ do
     for pid in ${pids[@]}; do wait $pid; done
 done
 ```
-
+Expected output files:
+```
+<>.g.vcf.gz
+<>.g.vcf.gz.tbi
+```
 ## convert gVCF to VCF
 ```
 module load Java/1.8.0_121
