@@ -396,3 +396,40 @@ for pid in ${pids[@]}; do wait $pid; done
 
 done
 ```
+## convert VCF to PLINK format
+```
+ml plink/1.90beta-4.4-21-May
+
+cd /hpcfs/users/a1717363/IncaModern
+
+vcfdir=./08-VCF
+plinkdir=./09-PLINK
+samples=(K24 K24a K29 PUN67 PUN68 PUN76)
+parallel=6
+
+i=1
+for sample in ${samples[@]}
+do
+
+plink \
+  --vcf ${vcfdir}/${sample}.vcf.gz \
+  --out ${plinkdir}/${sample}plink_temp
+((i=i+1))
+done
+```
+expected output files: \
+`.bed`: binary file that contains genotype information. \
+`.bim`: tab-delimited text file that always accompanies a .bed genotype file. It contains variant information, has no header line, and one line per variant with the following six fields: \
+	- Chromosome code (either an integer, or 'X'/'Y'/'XY'/'MT'; '0' indicates unknown) or name \
+	- Variant identifier \
+	- Position in morgans or centimorgans (safe to use dummy value of '0') \
+	- Base-pair coordinate (1-based) \
+	- Allele 1 (usually minor) \
+	- Allele 2 (usually major) \
+`.bed`: tab-delimited text file that always accompanies a .bed genotype file. It contains sample information, has no header line, and one line per sample with the following six fields:
+	- Family ID ('FID') \
+	- Within-family ID ('IID'; cannot be '0') \
+	- Within-family ID of father ('0' if father isn't in dataset) \
+	- Within-family ID of mother ('0' if mother isn't in dataset) \
+	- Sex code ('1' = male, '2' = female, '0' = unknown) \
+	- Phenotype value ('1' = control, '2' = case, '-9'/'0'/non-numeric = missing data if case/control) 
