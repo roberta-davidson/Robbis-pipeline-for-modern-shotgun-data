@@ -413,6 +413,9 @@ do
 
 plink \
   --vcf ${vcfdir}/${sample}.vcf.gz \
+  --maf 0.01 \
+  --allow-no-sex \
+  --recode \
   --out ${plinkdir}/${sample}plink_temp
 ((i=i+1))
 done
@@ -426,7 +429,7 @@ expected output files: \
 	- Base-pair coordinate (1-based) \
 	- Allele 1 (usually minor) \
 	- Allele 2 (usually major) \
-`.bed`: tab-delimited text file that always accompanies a .bed genotype file. It contains sample information, has no header line, and one line per sample with the following six fields:
+`.fam`: tab-delimited text file that always accompanies a .bed genotype file. It contains sample information, has no header line, and one line per sample with the following six fields:
 	- Family ID ('FID') \
 	- Within-family ID ('IID'; cannot be '0') \
 	- Within-family ID of father ('0' if father isn't in dataset) \
