@@ -396,6 +396,38 @@ for pid in ${pids[@]}; do wait $pid; done
 
 done
 ```
+## Filter VCF
+Filter VCF by sites in the 1240K dataset
+Requires input file of positions to filter by, tab delimited with chromosome in the first column and position in bp in the second. No header.
+eg. format:
+```
+#CHR	#POS
+1	75266
+X	83890
+Y	73952
+```
+```
+module load vcftools/0.1.12a-GCC-5.3.0-binutils-2.25 
+
+cd /hpcfs/users/a1717363/IncaModern
+
+vcfdir=./08-VCF
+filterdir=./09-filter_VCF_1240K
+sites=./1240K-sites
+samples=(Ka24 K24 K29 PUN67 PUN76 PUN68)
+parallel=6
+
+i=1
+for sample in ${samples[@]}
+do
+vcftools --gzvcf ${vcfdir}/${sample}.vcf.gz\
+	--positions ${sites}/1240K_sites.txt \	#coordinates of SNP sites
+	--recode \				#essential to write output file, otherwise no output file is written
+	--out ${filterdir}/${sample}_filtered_1240K
+	pids[$j]=$!
+((i=i+1))
+done
+```
 ## convert VCF to PLINK format
 ```
 ml plink/1.90beta-4.4-21-May
