@@ -389,7 +389,9 @@ do
     individ=${samples[$i + $j - 1]}
     if [[ -z $individ ]] ; then break 2; fi
     java -Xmx32g -Djava.io.tmpdir=$tmp -jar $EBROOTGATK/GenomeAnalysisTK.jar -T GenotypeGVCFs \
-    -nt 16 -R $ref -V $indata/${individ}.g.vcf.gz -o $outdata/${individ}.vcf.gz &
+    -nt 16 -R $ref -V $indata/${individ}.g.vcf.gz \
+    --includeNonVariantSites \		#includes all sites whether there is a variant in the sample or not. Bigger files, more time. Can be useful if filtering to a certain snp set.
+    -o $outdata/${individ}.vcf.gz &
     pids[$j]=$!
     done
 for pid in ${pids[@]}; do wait $pid; done
@@ -428,29 +430,33 @@ vcftools --gzvcf ${vcfdir}/${sample}.vcf.gz\
 ((i=i+1))
 done
 ```
+## Merge VCFs
+Check actual vcf file format by `htsfile <file>` \
+Should output: `VCF version 4.2 BGZF-compressed variant calling data` and be accompanied by a *.vcf.gz.csi index file. \
+(htsfile on this outputs: `CSI version 1 compressed index data`) \
+If this is not the case run:
+```
+mv file.vcf.gz plain.vcf
+bcftools view -Oz -o compressed.vcf.gz plain.vcf
+htsfile compressed.vcf.gz
+bcftools index compressed.vcf.gz
+```
+To merge files:
+```
+bcftools merge -m all -l input_list.txt -Oz -o IncaModern.vcf.gz
+```
+Where `input_list.txt` is a text file with one vcf per line.
+
 ## convert VCF to PLINK format
 ```
 ml plink/1.90beta-4.4-21-May
 
-cd /hpcfs/users/a1717363/IncaModern
-
-vcfdir=./08-VCF
-plinkdir=./09-PLINK
-samples=(K24 K24a K29 PUN67 PUN68 PUN76)
-parallel=6
-
-i=1
-for sample in ${samples[@]}
-do
-
 plink \
-  --vcf ${vcfdir}/${sample}.vcf.gz \
+  --vcf IncaModern.vcf.gz \
   --maf 0.01 \
-  --allow-no-sex \
-  --recode \
-  --out ${plinkdir}/${sample}plink_temp
-((i=i+1))
-done
+  --allow-no-sex \ #PLINK removes individuals without sex assignment by default so always using this flag ensures you keep them.
+  --make-bed \
+  --out IncaModern
 ```
 expected output files: \
 `.bed`: binary file that contains genotype information. \
