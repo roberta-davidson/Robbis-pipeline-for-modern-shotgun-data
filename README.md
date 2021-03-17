@@ -474,3 +474,33 @@ expected output files: \
 	- Within-family ID of mother ('0' if mother isn't in dataset) \
 	- Sex code ('1' = male, '2' = female, '0' = unknown) \
 	- Phenotype value ('1' = control, '2' = case, '-9'/'0'/non-numeric = missing data if case/control) 
+
+
+## Convert PLINK to Eigenstrat format
+if you're using the conda installed version of plink, you need to fix up the .ind file:
+
+awk -F':' '{print $1,$2}' file.ind | awk '{print $2,$3,$1}' > temp.ind
+mv temp.in    file.ind
+
+## Runing Admixture
+Subset bed files to required individuals:
+```
+module load plink/1.90beta-4.4-21-May
+
+plink --bfile v42.4.1240K_HO \
+	--allow-no-sex \
+	--keep keep_list.txt \
+	--make-bed \
+	--out RefSet_small
+```
+Running admixture:
+```
+ml Admixture/1.3.0
+
+BED_FILE=small_admixture/IncaMod_small_filtMiss.bed
+
+for K in {9..12}; do
+	admixture --cv $BED_FILE $K \
+	| tee log${K}.out
+done
+```
