@@ -455,6 +455,7 @@ plink \
   --vcf IncaModern.vcf.gz \
   --maf 0.01 \
   --allow-no-sex \ #PLINK removes individuals without sex assignment by default so always using this flag ensures you keep them.
+  --keep-allele-order \ #ALWAYS use this option otherwise plink will flip allele order by default
   --make-bed \
   --out IncaModern
 ```
@@ -488,6 +489,7 @@ Subset bed files to required individuals:
 module load plink/1.90beta-4.4-21-May
 
 plink --bfile v42.4.1240K_HO \
+	--keep-allele-order \
 	--allow-no-sex \
 	--keep keep_list.txt \
 	--make-bed \
