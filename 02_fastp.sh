@@ -1,4 +1,4 @@
-cd /hpcfs/users/a1717363/IncaModern/Lane_6/PUN76/
+cd /hpcfs/users/aXXXXXX/IncaModern/Lane_6/PUN76/
 
 fastp --verbose \
 --thread 16 \
