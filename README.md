@@ -374,7 +374,7 @@ module load Java/1.8.0_121
 
 cd /hpcfs/users/a1717363/IncaModern/
 
-ref=/hpcfs/groups/acad_users/Refs/Homo_sapiens/GATK/GRCh38/GRCh38_full_analysis_set_plus_decoy_hla.fa
+ref=/<path>/GRCh38_full_analysis_set_plus_decoy_hla.fa
 indata=./07-gvcf
 outdata=./08-gVCF-VCF
 tmp=./08-gVCF-VCF/tmp
@@ -390,7 +390,6 @@ do
     if [[ -z $individ ]] ; then break 2; fi
     java -Xmx32g -Djava.io.tmpdir=$tmp -jar $EBROOTGATK/GenomeAnalysisTK.jar -T GenotypeGVCFs \
     -nt 16 -R $ref -V $indata/${individ}.g.vcf.gz \
-    --includeNonVariantSites \		#includes all sites whether there is a variant in the sample or not. Bigger files, more time. Can be useful if filtering to a certain snp set.
     -o $outdata/${individ}.vcf.gz &
     pids[$j]=$!
     done
@@ -431,7 +430,7 @@ vcftools --gzvcf ${vcfdir}/${sample}.vcf.gz\
 done
 ```
 ## Merge VCFs
-Check actual vcf file format by `htsfile <file>` \
+Check actual vcf file format by `htsfile <file>` 
 Should output: `VCF version 4.2 BGZF-compressed variant calling data` and be accompanied by a *.vcf.gz.csi index file. \
 (htsfile on this outputs: `CSI version 1 compressed index data`) \
 If this is not the case run:
@@ -443,7 +442,43 @@ bcftools index compressed.vcf.gz
 ```
 To merge files:
 ```
-bcftools merge -m all -l input_list.txt -Oz -o IncaModern.vcf.gz
+bcftools merge -m all -l input_list.txt -Oz -o <output_name>.vcf.gz
 ```
 Where `input_list.txt` is a text file with one vcf per line.
 
+## Pseudohaploid Variant Call
+Need to input: \
+A reference `fasta`, same file as used for mapping.\
+`.pos` and `.snp` file of the SNPs you want to call. \
+The `.snp` file has the format:
+```
+rs376007522 	 1 	 0 	 10109 	 A 	 T
+rs368469931 	 1 	 0 	 10139 	 A 	 T
+rs371194064 	 1 	 0 	 10150 	 C 	 T
+```
+The `.pos` file should have one variant pe line with the Chromosome listed in the first column and position in the second. \
+You can write this file from the `.snp` file with the awk command: `awk '{print $2 "\t" $4}' *.snp > *.pos` 
+
+`newBamList.txt` is a list of all `.bam` files you wish to call pseudohaploid variants from. One file per line with the absolute path specified. \
+`newSamplelist.txt` is a list of sample names, in the same order as the bam file names. Usually the same wile but with the path and file extensions removed.
+
+Now run the script: 
+```
+module load SAMtools/1.8-foss-2016b
+
+ref=<path>/human_g1k_v37_decoy.fasta
+pos=<path>/dbsnp_138.b37.pos
+snp=<path>/dbsnp_138.b37.snp
+
+source activate 
+samtools mpileup -R -B -q 1 \
+	--positions ${pos} \
+	--fasta-ref ${ref} \
+	--bam-list newBamList.txt \
+	| pileupCaller --sampleNameFile newSamplelist.txt \
+	--snpFile ${snp} \
+	--randomHaploid \
+	--samplePopName BENCHMARK \
+	--eigenstratOut <name_prefix>.pseudohap
+```
+Expect EIGENSTRAT output filest (`.snp`, `.geno`, `.ind` files).
