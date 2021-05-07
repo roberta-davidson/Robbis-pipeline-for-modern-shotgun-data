@@ -28,9 +28,9 @@ K29,INCP-10,UDP0294,AAGATACACG
 ```
 
 ## Demultiplexing with bcl2fastq
-
+must load arch/haswell first to access bcl2fastq and other modules
 ```
-module load arch/haswell #must load arch/haswell first to access bcl2fastq and other modules
+module load arch/haswell 
 module load bcl2fastq2/2.19.1
 
 bcl2fastq \
@@ -57,7 +57,7 @@ cd /hpcfs/users/a1717363/IncaModern/Lane_6/PUN76/
 
 fastp --verbose \
 --thread 16 \
--g -x -c -h PUN76.fastp.html -j PUN76_fastp.json \ 	#g, x, c, h used because novaseq data
+-g -x -c -h PUN76.fastp.html -j PUN76_fastp.json \
 --in1 ./PUN76_S1_L006_R1_001.fastq.gz --in2 ./PUN76_S1_L006_R2_001.fastq.gz \ 
 --out1 ./PUN76_R1.fastp.fastq.gz \
 --out2 ./PUN76_R2.fastp.fastq.gz
@@ -87,7 +87,7 @@ multiqc .
 module load BWA/0.7.17-foss-2016b
 module load SAMtools/1.9-foss-2016b
 
-ref=/hpcfs/groups/acad_users/Refs/Homo_sapiens/GATK/GRCh38/GRCh38_full_analysis_set_plus_decoy_hla.fa
+ref=/<path>/GRCh38_full_analysis_set_plus_decoy_hla.fa
 fastpdir1=/hpcfs/users/a1717363/IncaModern/01-fastp/Lane_6/
 mapped1=/hpcfs/users/a1717363/IncaModern/02-mapped/Lane6/
 samples=(K24 K24a K29 PUN67 PUN68 PUN76)
@@ -190,7 +190,8 @@ done
 ```
 
 ## Mark Duplicates
-Identifies and marks duplicated reads in bam file
+Identifies and marks duplicated reads in bam file. \
+Could simply remove duplicates instead (see below).
 ```
 cd /hpcfs/users/a1717363/IncaModern/
 
@@ -216,6 +217,91 @@ Expected output files:
 ```
 <>.bam
 <>.bam.bai
+```
+## Remove duplicates
+Remove duplicated reads in bam file. \
+The first time I processed data I skipped this step and had duplicate variants to weed out later. \
+```
+#conda-dependency: biobambam 2.0.87
+
+cd /hpcfs/users/a1717363/IncaModern
+
+indir=./07-indelRealign
+outdir=./08-removedup
+samples=(Ka24 K24 K29 PUN68 PUN76 PUN67)
+parallel=6
+
+for (( i=0 ; i<${#samples[@]} ; i += $parallel ))
+do
+    for j in $(seq $parallel)
+    do
+    individ=${samples[$i + $j - 1]}
+    if [[ -z $individ ]] ; then break 2; fi
+    bammarkduplicates2 index=1 \
+	rmdup=1 \
+	markthread=8 \
+	I=$indir/${individ}_indelReal.bam \
+	O=$outdir/${individ}_indelReal.removedup.bam \
+	D=$outdir/${individ}.removed &
+    pids[$j]=$!
+    done
+    for pid in ${pids[@]}; do wait $pid; done
+done
+```
+## Realign around INDELs
+Realign bam file around indels. The script first writes a file of interval regions and then realigns. \
+I also accidentally skipped this step on my first run through of the pipeline.
+```
+module load parallel/20191022
+module load picard/2.23.3
+idat=/hpcfs/users/a1717363/IncaModern/06-bqsr
+odir=/hpcfs/users/a1717363/IncaModern/07-indelRealign
+ref=/hpcfs/users/a1717363/mapping_resources/GRCh37/human_g1k_v37_decoy.fasta
+gatk3_jar=$EBROOTGATK/GenomeAnalysisTK.jar
+
+sample=(PUN67 Ka24 K24 K29 PUN68 PUN76)
+parallel=6
+
+for (( i=0 ; i<${#sample[@]} ; i += $parallel ))
+do
+    for j in $(seq $parallel)
+    do
+	java -Xmx8G -jar ${gatk3_jar} \
+	  -T RealignerTargetCreator \
+	  -R ${ref} \
+	  --num_threads 8 \
+	  --mismatchFraction 0.30 \
+	  --maxIntervalSize 650 \
+	  --allow_potentially_misencoded_quality_scores \
+	  -I ${idat}/${sample}_bqsr.bam \
+	  -o ${odir}/${sample}_indelReal.intervals
+        pids[$j]=$!
+    done
+    for pid in ${pids[@]}; do wait $pid; done
+done
+
+for (( i=0 ; i<${#sample[@]} ; i += $parallel ))
+do
+    for j in $(seq $parallel)
+    do
+	java -Xmx8G -jar ${gatk3_jar} \
+	  -T IndelRealigner \
+	  -R ${ref} \
+	  -model USE_READS \
+	  -compress 0 \
+	  --filter_bases_not_stored \
+	  --allow_potentially_misencoded_quality_scores \
+	  -I ${idat}/${sample}_bqsr.bam \
+	  -targetIntervals ${odir}/${sample}_indelReal.intervals \
+	  -o ${odir}/${sample}_indelReal.bam
+
+	cp -v \
+	  ${odir}/${sample}_indelReal.bai \
+		${odir}/${sample}_indelRealign.bam.bai &
+ 	pids[$j]=$!
+    done
+    for pid in ${pids[@]}; do wait $pid; done
+done
 ```
 
 ## BQSR (Base Quality Score Recalibration)
