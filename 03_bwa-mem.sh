@@ -1,12 +1,20 @@
+#!/bin/bash
+
+##Using bwa-mem to map reads to reference genome
+
+#load required modules on hpc
 module load BWA/0.7.17-foss-2016b
 module load SAMtools/1.9-foss-2016b
 
+#set variables fro reference fasta, input directory and output directory
 ref=/<path>/GRCh38_full_analysis_set_plus_decoy_hla.fa
 fastpdir1=/hpcfs/users/a1717363/IncaModern/01-fastp/Lane_6/
 mapped1=/hpcfs/users/a1717363/IncaModern/02-mapped/Lane6/
 
+#sample names to loop through
 samples=(K24 K24a K29 PUN67 PUN68 PUN76)
 
+#run bwa in parallel
 i=1
 for sample in ${samples[@]}
 do

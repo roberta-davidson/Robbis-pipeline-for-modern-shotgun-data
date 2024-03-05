@@ -1,12 +1,15 @@
+#!/bin/bash
+
 #conda-dependency: biobambam 2.0.87
 
-cd /hpcfs/users/a1717363/IncaModern
-
+#set variables
 indir=./07-indelRealign
 outdir=./08-removedup
 samples=(Ka24 K24 K29 PUN68 PUN76 PUN67)
 parallel=6
 
+
+#loop reomiving duplicates from bam (maybe before or after re-aligning indels - cannot remember)
 for (( i=0 ; i<${#samples[@]} ; i += $parallel ))
 do
     for j in $(seq $parallel)
