@@ -1,10 +1,14 @@
+#!/bin/bash
+
+#Base quality score recalibration
+
+#load modules
 ml arch/haswell
 ml arch/arch/haswell
 ml modulefiles/arch/haswell
 ml GATK/3.5-Java-1.8.0_71
 
-cd /hpcfs/users/a1717363/IncaModern/
-
+#set variables
 ref=/hpcfs/groups/acad_users/Refs/Homo_sapiens/GATK/GRCh38/GRCh38_full_analysis_set_plus_decoy_hla.fa
 knownsites=/hpcfs/users/a1717363/mapping_resources/00-All.vcf.gz
 indata=./05-markdup
@@ -14,6 +18,7 @@ tmp=./06-bsqr/tmp
 samples=(Ka24 K24 K29 PUN67 PUN68 PUN76)
 parallel=6
 
+#recalibrate base quality scores
 for (( i=0 ; i<${#samples[@]} ; i += $parallel ))
 do
     for j in $(seq $parallel)
@@ -27,6 +32,7 @@ do
     for pid in ${pids[@]}; do wait $pid; done
 done
 
+#write post BQSR bam
 samples=(Ka24 K24 K29 PUN67 PUN68 PUN76)
 parallel=6
 for (( i=0 ; i<${#samples[@]} ; i += $parallel ))
@@ -42,6 +48,7 @@ do
     for pid in ${pids[@]}; do wait $pid; done
 done
 
+#index bqsr bam
 module load SAMtools/1.9-foss-2016b
 samples=(Ka24 K24 K29 PUN67 PUN68 PUN76)
 parallel=6
