@@ -1,4 +1,4 @@
-# Modern-shotgun-pipeline
+# Modern-shotgun-processing-workflow
 
 ## Make Sample Sheet
 
